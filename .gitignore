@@ -1,3 +1,6 @@
+# Markdown assets
+*.mp4
+
 # Compiled Lua sources
 luac.out
 
