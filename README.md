@@ -8,6 +8,9 @@ _A blazingly fast keyboard cursor positioning plugin that uses a fixed and predi
 
 This predictable grid layout helps in building muscle memory, enabling fast and efficient cursor repositioning without the need to visually locate target areas on the screen.
 
+https://github.com/user-attachments/assets/52b3d5e9-29fb-4f9e-81c6-8940b14ea603
+
+
 ## Features
 
 - **Cursor Mode for Instant Cursor Positioning:**  
