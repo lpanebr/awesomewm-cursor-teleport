@@ -8,10 +8,13 @@ local beautiful = require("beautiful")
 local cursor_mode_active = false
 local keygrabber
 
-local teleport_keys = {
-	{ "q", "w", "e", "r", "t", "y", "u", "i", "o", "p" },
-	{ "a", "s", "d", "f", "g", "h", "j", "k", "l", "~" },
-	{ "z", "x", "c", "v", "b", "n", "m", ",", ".", "/" },
+local sections = {
+	{ "q", "w", "e", "r", "t" },
+	{ "a", "s", "d", "f", "g" },
+	{ "z", "x", "c", "v", "b" },
+	{ "y", "u", "i", "o", "p" },
+	{ "h", "j", "k", "l", "~" },
+	{ "n", "m", ",", ".", "/" },
 }
 
 -------------------- Grid --------------------
@@ -32,8 +35,7 @@ local grid_wibox = wibox({
 	y = 0,
 	width = awful.screen.focused().geometry.width,
 	height = awful.screen.focused().geometry.height,
-	bg = "#0000b0" .. "55", -- color and transparency
-	fg = "#FFFF00",
+	bg = "#0000b0" .. "33", -- color and transparency
 })
 
 local grid_widget = wibox.widget({
@@ -44,7 +46,7 @@ local grid_widget = wibox.widget({
 	end,
 
 	draw = function(_, _, cr, width, height)
-		cr:set_source_rgba(1, 1, 1, 0.3)
+		cr:set_source_rgba(1, 1, 1, 0.1) -- grid lines color and transparency
 
 		local cell_width = width / NUM_COLS
 		local cell_height = height / NUM_ROWS
@@ -68,8 +70,8 @@ local grid_widget = wibox.widget({
 
 		-- Teleport key labels
 		cr:select_font_face("Sans", cairo_lgi.FontSlant.NORMAL, cairo_lgi.FontWeight.BOLD)
-		cr:set_font_size(34)
-		cr:set_source_rgba(1, 1, 0, 1)
+		cr:set_font_size(180)
+		cr:set_source_rgba(1, 1, 0, 0.3)
 
 		for row = 1, NUM_ROWS do
 			for col = 1, NUM_COLS do
