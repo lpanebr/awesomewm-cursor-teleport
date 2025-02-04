@@ -25,7 +25,7 @@ for _, row in ipairs(teleport_keys) do
 	end
 end
 
--- Grid principal (cobre a tela toda)
+-- Main Grid
 local grid_wibox = wibox({
 	visible = false,
 	ontop = true,
@@ -43,7 +43,7 @@ local grid_widget = wibox.widget({
 		return width, height
 	end,
 	draw = function(_, _, cr, width, height)
-		-- Desenha linhas do grid
+		-- Main Grid lines
 		cr:set_source_rgba(1, 0, 0, 0.5)
 		local cell_width = width / NUM_COLS
 		local cell_height = height / NUM_ROWS
@@ -61,10 +61,14 @@ local grid_widget = wibox.widget({
 		cr:set_line_width(2)
 		cr:stroke()
 
-		-- Rótulos centrais das células
+		-- Main Grid Labels
 		cr:select_font_face("Sans", cairo_lgi.FontSlant.NORMAL, cairo_lgi.FontWeight.BOLD)
 		cr:set_font_size(180)
-		cr:set_source_rgba(1, 1, 0, 0.3)
+		-- Fill color: R, G, B, Alpha (0-1)
+		local fill_r, fill_g, fill_b, fill_a = 1, 1, 0, 0.5
+		-- Outline color: R, G, B, Alpha (0-1)
+		local outline_r, outline_g, outline_b, outline_a = 0, 0, 0, 1
+		local outline_width = 2
 
 		for row = 1, NUM_ROWS do
 			for col = 1, NUM_COLS do
@@ -79,7 +83,12 @@ local grid_widget = wibox.widget({
 				local text_x = cx - (extents.width / 2 + extents.x_bearing)
 				local text_y = cy - (extents.height / 2 + extents.y_bearing)
 				cr:move_to(text_x, text_y)
-				cr:show_text(text)
+				cr:text_path(text)
+				cr:set_source_rgba(outline_r, outline_g, outline_b, outline_a)
+				cr:set_line_width(outline_width)
+				cr:stroke_preserve()
+				cr:set_source_rgba(fill_r, fill_g, fill_b, fill_a)
+				cr:fill()
 			end
 		end
 	end,
@@ -93,8 +102,6 @@ grid_wibox:setup({
 local function toggle_grid()
 	grid_wibox.visible = not grid_wibox.visible
 end
-
--------------------- Função de Teleporte do Cursor --------------------
 
 local function move_cursor_to_section(section)
 	local screen = mouse.screen
@@ -125,7 +132,6 @@ local function move_cursor_to_section(section)
 	})
 end
 
--- Função para mover o cursor no grid preciso (segunda etapa)
 local function move_cursor_to_section_precise(section, geom)
 	local rowIndex, colIndex
 	for row = 1, #teleport_keys do
@@ -152,9 +158,6 @@ local function move_cursor_to_section_precise(section, geom)
 	})
 end
 
--------------------- Modos de Controle do Cursor --------------------
-
--- Modo que apenas move o cursor (sem clique)
 local function toggle_cursor_mode()
 	cursor_mode_active = not cursor_mode_active
 	toggle_grid()
@@ -182,21 +185,16 @@ local function toggle_cursor_mode()
 	end
 end
 
--- Função que inicia o modo de clique preciso (segunda etapa)
+-- Precise Grid Widget
 local function start_precise_click_mode()
-	-- Obtém a posição atual do cursor
 	local cur = mouse.coords()
 	local screen = awful.screen.focused()
 	local sgeom = screen.geometry
-
-	-- Define as dimensões do grid preciso (um "célula" do grid principal)
 	local precise_w = sgeom.width / NUM_COLS
 	local precise_h = sgeom.height / NUM_ROWS
-	-- Posiciona o novo grid de forma que seu centro seja a posição atual do cursor
 	local precise_x = cur.x - (precise_w / 2)
 	local precise_y = cur.y - (precise_h / 2)
 
-	-- Cria o wibox do grid preciso (pode usar uma cor diferenciada, se desejar)
 	local precise_grid_wibox = wibox({
 		visible = true,
 		ontop = true,
@@ -208,14 +206,13 @@ local function start_precise_click_mode()
 		bg = "#0000b0" .. "44",
 	})
 
-	-- Widget que desenha o grid preciso (mesmo método de desenho, mas com a nova geometria)
 	local precise_grid_widget = wibox.widget({
 		widget = wibox.widget.base.make_widget,
 		fit = function(_, _, width, height)
 			return width, height
 		end,
 		draw = function(_, _, cr, width, height)
-			cr:set_source_rgba(1, 1, 1, 0.1)
+			cr:set_source_rgba(1, 0, 0, 0.5)
 			local cell_width = width / NUM_COLS
 			local cell_height = height / NUM_ROWS
 
@@ -232,9 +229,15 @@ local function start_precise_click_mode()
 			cr:set_line_width(2)
 			cr:stroke()
 
+			-- Precise Grid Labels
 			cr:select_font_face("Sans", cairo_lgi.FontSlant.NORMAL, cairo_lgi.FontWeight.BOLD)
 			cr:set_font_size(60)
-			cr:set_source_rgba(1, 1, 0, 0.3)
+			-- Fill color: R, G, B, Alpha (0-1)
+			local fill_r, fill_g, fill_b, fill_a = 1, 1, 0, 0.5
+			-- Outline color: R, G, B, Alpha (0-1)
+			local outline_r, outline_g, outline_b, outline_a = 0, 0, 0, 1
+			local outline_width = 2
+
 			for row = 1, NUM_ROWS do
 				for col = 1, NUM_COLS do
 					local cx = (col - 1) * cell_width + (cell_width / 2)
@@ -247,7 +250,12 @@ local function start_precise_click_mode()
 					local text_x = cx - (extents.width / 2 + extents.x_bearing)
 					local text_y = cy - (extents.height / 2 + extents.y_bearing)
 					cr:move_to(text_x, text_y)
-					cr:show_text(text)
+					cr:text_path(text)
+					cr:set_source_rgba(outline_r, outline_g, outline_b, outline_a)
+					cr:set_line_width(outline_width)
+					cr:stroke_preserve()
+					cr:set_source_rgba(fill_r, fill_g, fill_b, fill_a)
+					cr:fill()
 				end
 			end
 		end,
@@ -257,7 +265,6 @@ local function start_precise_click_mode()
 		layout = wibox.layout.stack,
 	})
 
-	-- Keygrabber para a etapa de clique preciso
 	local precise_keygrabber = awful.keygrabber.run(function(_, key, event)
 		if event == "release" then
 			return
@@ -265,12 +272,10 @@ local function start_precise_click_mode()
 		if key == "dead_tilde" or key == "asciitilde" then
 			key = "~"
 		end
-		-- Se pressionar Escape, cancela o modo preciso
 		if key == "Escape" then
 			awful.keygrabber.stop(precise_keygrabber)
 			precise_grid_wibox.visible = false
 		else
-			-- Mover o cursor dentro do grid preciso e simular o clique
 			move_cursor_to_section_precise(key, { x = precise_x, y = precise_y, width = precise_w, height = precise_h })
 			awful.util.spawn_with_shell("xdotool click 1")
 			awful.keygrabber.stop(precise_keygrabber)
@@ -279,7 +284,6 @@ local function start_precise_click_mode()
 	end)
 end
 
--- Modo que ativa a primeira etapa do clique (move o cursor, oculta o grid e inicia o modo preciso)
 local function toggle_cursor_mode_with_click()
 	cursor_mode_active = not cursor_mode_active
 	toggle_grid()
@@ -295,13 +299,10 @@ local function toggle_cursor_mode_with_click()
 			if key == "Escape" then
 				toggle_cursor_mode_with_click()
 			else
-				-- Primeira etapa: reposiciona o cursor conforme o grid global
 				move_cursor_to_section(key)
-				-- Oculta o grid global e finaliza o keygrabber desta etapa
 				toggle_grid()
 				awful.keygrabber.stop(keygrabber)
 				cursor_mode_active = false
-				-- Inicia a etapa 2: o clique preciso com novo grid centrado na posição atual do cursor
 				start_precise_click_mode()
 			end
 		end)
@@ -313,7 +314,7 @@ local function toggle_cursor_mode_with_click()
 	end
 end
 
--- Bindings globais para ativar os modos
+-- Global Bindings
 local globalkeys = gears.table.join(
 	root.keys(),
 	awful.key(
