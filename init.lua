@@ -164,15 +164,56 @@ local function toggle_cursor_mode()
 	end
 end
 
--- Bind global para ativar o Cursor Mode
+-- Nova função para mover o cursor e clicar
+local function toggle_cursor_mode_with_click()
+	cursor_mode_active = not cursor_mode_active
+
+	toggle_grid()
+
+	if cursor_mode_active then
+		naughty.notify({ title = "Cursor Mode", text = "Ativado (com clique)." })
+		keygrabber = awful.keygrabber.run(function(_, key, event)
+			if event == "release" then
+				return
+			end
+
+			if key == "dead_tilde" or key == "asciitilde" then
+				key = "~"
+			end
+
+			if key == "Escape" then
+				toggle_cursor_mode_with_click()
+			else
+				move_cursor_to_section(key)
+				-- Simulando um clique do mouse após mover o cursor
+				awful.util.spawn_with_shell("xdotool click 1")
+				toggle_cursor_mode_with_click()
+			end
+		end)
+	else
+		naughty.notify({ title = "Cursor Mode", text = "Desativado." })
+		if keygrabber then
+			awful.keygrabber.stop(keygrabber)
+		end
+	end
+end
+
+-- Bind globals para ativar os modos de cursor
 local globalkeys = gears.table.join(
+	root.keys(),
 	awful.key(
 		{ "Mod4", "Shift" },
 		"u",
 		toggle_cursor_mode,
 		{ description = "Ativar modo de controle do cursor", group = "custom" }
+	),
+	awful.key(
+		{ "Mod4", "Shift" },
+		"i",
+		toggle_cursor_mode_with_click,
+		{ description = "Ativar modo de controle do cursor com clique", group = "custom" }
 	)
 )
 
-root.keys(gears.table.join(root.keys(), globalkeys))
+root.keys(globalkeys)
 return {}
