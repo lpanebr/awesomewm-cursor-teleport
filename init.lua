@@ -8,50 +8,44 @@ local beautiful = require("beautiful")
 local cursor_mode_active = false
 local keygrabber
 
--- Tabela com os caracteres para cada mão (usada para formar os pares)
-local teleport_keys_by_hand = {
-	left_hand = {
-		{ "q", "w", "e", "r", "t" },
-		{ "a", "s", "d", "f", "g" },
-	},
-	right_hand = {
-		{ "z", "x", "c", "v", "b" },
-		{ "y", "u", "i", "o", "p" },
-	},
+-- Tabela com as teclas para colunas e linhas
+local teleport_col_keys = {
+	"q",
+	"w",
+	"e",
+	"r",
+	"t",
+	"y",
+	"u",
+	"i",
+	"o",
+	"p",
 }
 
--- Define NUM_ROWS e NUM_COLS fixos
-local NUM_ROWS = 7
-local NUM_COLS = 10
+local teleport_row_keys = {
+	"a",
+	"s",
+	"d",
+	"f",
+	"g",
+	"h",
+	"j",
+}
 
--- Obtém todos os caracteres de cada mão (mantendo a ordem desejada)
-local left_keys = {}
-for _, row in ipairs(teleport_keys_by_hand.left_hand) do
-	for _, key in ipairs(row) do
-		table.insert(left_keys, key)
-	end
-end
+-- Define NUM_ROWS e NUM_COLS com base nos tamanhos das tabelas
+local NUM_ROWS = #teleport_row_keys
+local NUM_COLS = #teleport_col_keys
 
-local right_keys = {}
-for _, row in ipairs(teleport_keys_by_hand.right_hand) do
-	for _, key in ipairs(row) do
-		table.insert(right_keys, key)
-	end
-end
-
--- Gera todos os pares únicos (um da mão esquerda e um da mão direita)
+-- Gera todos os pares possíveis (uma tecla de linha e uma tecla de coluna)
 local all_pairs = {}
-for _, lkey in ipairs(left_keys) do
-	for _, rkey in ipairs(right_keys) do
-		table.insert(all_pairs, lkey .. rkey)
+for _, row_key in ipairs(teleport_row_keys) do
+	for _, col_key in ipairs(teleport_col_keys) do
+		table.insert(all_pairs, col_key .. row_key)
 	end
 end
 
--- Seleciona apenas os 60 primeiros pares para preencher a grade (NUM_ROWS * NUM_COLS)
-local area_pairs = {}
-for i = 1, NUM_ROWS * NUM_COLS do
-	area_pairs[i] = all_pairs[i]
-end
+-- Definimos area_pairs diretamente como all_pairs, já que são todos os pares possíveis
+local area_pairs = all_pairs
 
 -- Cria um mapeamento de cada par para sua posição na grade (linha e coluna)
 local pair_to_cell = {}
@@ -61,9 +55,9 @@ for i, pair in ipairs(area_pairs) do
 	pair_to_cell[pair] = { row = row, col = col }
 end
 
--- Funções auxiliares para verificar se um caractere pertence a cada mão
-local function is_left_key(key)
-	for _, k in ipairs(left_keys) do
+-- Funções auxiliares para verificar se um caractere é uma tecla de linha ou coluna
+local function is_row_key(key)
+	for _, k in ipairs(teleport_row_keys) do
 		if k == key then
 			return true
 		end
@@ -71,8 +65,8 @@ local function is_left_key(key)
 	return false
 end
 
-local function is_right_key(key)
-	for _, k in ipairs(right_keys) do
+local function is_col_key(key)
+	for _, k in ipairs(teleport_col_keys) do
 		if k == key then
 			return true
 		end
@@ -180,7 +174,7 @@ local grid_widget = wibox.widget({
 				local cx = (col - 1) * cell_width + (cell_width / 2)
 				local cy = (row - 1) * cell_height + (cell_height / 2)
 				local index = (row - 1) * NUM_COLS + col
-				local text = area_pairs[index] and area_pairs[index]:gsub("^%l", string.upper) or ""
+				local text = area_pairs[index] and string.upper(area_pairs[index]) or ""
 				local extents = cr:text_extents(text)
 				local text_x = cx - (extents.width / 2 + extents.x_bearing)
 				local text_y = cy - (extents.height / 2 + extents.y_bearing)
@@ -206,7 +200,7 @@ local function toggle_grid()
 end
 
 -- Modo de controle do cursor (sem clique preciso) com sequência de 2 teclas:
--- A ação é executada somente após o segundo caractere válido (de mãos diferentes) ser pressionado.
+-- A ação é executada somente após o segundo caractere válido ser pressionado.
 local function toggle_cursor_mode()
 	cursor_mode_active = not cursor_mode_active
 	toggle_grid()
@@ -226,28 +220,28 @@ local function toggle_cursor_mode()
 				return
 			end
 			if not first_key then
-				if is_left_key(key) or is_right_key(key) then
+				if is_row_key(key) or is_col_key(key) then
 					first_key = key
 				end
 			else
-				if (is_left_key(first_key) and is_right_key(key)) or (is_right_key(first_key) and is_left_key(key)) then
-					local pair = ""
-					if is_left_key(first_key) then
-						pair = first_key .. key
-					else
-						pair = key .. first_key
-					end
-					if pair_to_cell[pair] then
-						move_cursor_to_pair(pair)
-					else
-						naughty.notify({ title = "Erro", text = "Par inválido: " .. pair })
-					end
-					first_key = nil
-					toggle_cursor_mode()
+				local pair = ""
+				if is_col_key(first_key) and is_row_key(key) then
+					pair = first_key .. key
+				elseif is_row_key(first_key) and is_col_key(key) then
+					pair = key .. first_key
 				else
-					naughty.notify({ title = "Erro", text = "Os caracteres devem ser de mãos diferentes." })
+					naughty.notify({ title = "Erro", text = "Um caractere deve ser de linha e outro de coluna." })
 					first_key = nil
+					return
 				end
+
+				if pair_to_cell[pair] then
+					move_cursor_to_pair(pair)
+				else
+					naughty.notify({ title = "Erro", text = "Par inválido: " .. pair })
+				end
+				first_key = nil
+				toggle_cursor_mode()
 			end
 		end)
 	else
@@ -328,7 +322,7 @@ local function start_precise_click_mode()
 					local cx = (col - 1) * cell_width + (cell_width / 2)
 					local cy = (row - 1) * cell_height + (cell_height / 2)
 					local index = (row - 1) * NUM_COLS + col
-					local text = area_pairs[index] and area_pairs[index]:gsub("^%l", string.upper) or ""
+					local text = area_pairs[index] and string.upper(area_pairs[index]) or ""
 					local extents = cr:text_extents(text)
 					local text_x = cx - (extents.width / 2 + extents.x_bearing)
 					local text_y = cy - (extents.height / 2 + extents.y_bearing)
@@ -362,36 +356,33 @@ local function start_precise_click_mode()
 			return
 		end
 		if not precise_first_key then
-			if is_left_key(key) or is_right_key(key) then
+			if is_row_key(key) or is_col_key(key) then
 				precise_first_key = key
 			end
 		else
-			if
-				(is_left_key(precise_first_key) and is_right_key(key))
-				or (is_right_key(precise_first_key) and is_left_key(key))
-			then
-				local pair = ""
-				if is_left_key(precise_first_key) then
-					pair = precise_first_key .. key
-				else
-					pair = key .. precise_first_key
-				end
-				if pair_to_cell[pair] then
-					move_cursor_to_pair_precise(
-						pair,
-						{ x = precise_x, y = precise_y, width = precise_w, height = precise_h }
-					)
-					awful.util.spawn_with_shell("xdotool click 1")
-				else
-					naughty.notify({ title = "Erro", text = "Par inválido: " .. pair })
-				end
-				precise_first_key = nil
-				awful.keygrabber.stop(precise_keygrabber)
-				precise_grid_wibox.visible = false
+			local pair = ""
+			if is_col_key(precise_first_key) and is_row_key(key) then
+				pair = precise_first_key .. key
+			elseif is_row_key(precise_first_key) and is_col_key(key) then
+				pair = key .. precise_first_key
 			else
-				naughty.notify({ title = "Erro", text = "Os caracteres devem ser de mãos diferentes." })
+				naughty.notify({ title = "Erro", text = "Coluna Linha de novo! " .. precise_first_key .. key })
 				precise_first_key = nil
+				return
 			end
+
+			if pair_to_cell[pair] then
+				move_cursor_to_pair_precise(
+					pair,
+					{ x = precise_x, y = precise_y, width = precise_w, height = precise_h }
+				)
+				awful.util.spawn_with_shell("xdotool click 1")
+			else
+				naughty.notify({ title = "Erro", text = "Par inválido: " .. pair })
+			end
+			precise_first_key = nil
+			awful.keygrabber.stop(precise_keygrabber)
+			precise_grid_wibox.visible = false
 		end
 	end)
 end
@@ -415,31 +406,31 @@ local function toggle_cursor_mode_with_click()
 				return
 			end
 			if not first_key then
-				if is_left_key(key) or is_right_key(key) then
+				if is_row_key(key) or is_col_key(key) then
 					first_key = key
 				end
 			else
-				if (is_left_key(first_key) and is_right_key(key)) or (is_right_key(first_key) and is_left_key(key)) then
-					local pair = ""
-					if is_left_key(first_key) then
-						pair = first_key .. key
-					else
-						pair = key .. first_key
-					end
-					if pair_to_cell[pair] then
-						move_cursor_to_pair(pair)
-					else
-						naughty.notify({ title = "Erro", text = "Par inválido: " .. pair })
-					end
-					first_key = nil
-					toggle_grid()
-					awful.keygrabber.stop(keygrabber)
-					cursor_mode_active = false
-					start_precise_click_mode()
+				local pair = ""
+				if is_col_key(first_key) and is_row_key(key) then
+					pair = first_key .. key
+				elseif is_row_key(first_key) and is_col_key(key) then
+					pair = key .. first_key
 				else
-					naughty.notify({ title = "Erro", text = "Os caracteres devem ser de mãos diferentes." })
+					naughty.notify({ title = "Erro", text = "Coluna Linha!" })
 					first_key = nil
+					return
 				end
+
+				if pair_to_cell[pair] then
+					move_cursor_to_pair(pair)
+				else
+					naughty.notify({ title = "Erro", text = "Par inválido: " .. pair })
+				end
+				first_key = nil
+				toggle_grid()
+				awful.keygrabber.stop(keygrabber)
+				cursor_mode_active = false
+				start_precise_click_mode()
 			end
 		end)
 	else
