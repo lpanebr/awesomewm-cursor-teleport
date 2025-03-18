@@ -306,7 +306,8 @@ local function toggle_cursor_mode()
 end
 
 -- Modo de clique preciso: a grade precisa é exibida e a ação (clique) ocorre após UMA ÚNICA tecla
-local function start_precise_click_mode()
+local function start_precise_click_mode(button)
+	local button = button or 1
 	local cur = mouse.coords()
 	local screen = awful.screen.focused()
 	local sgeom = screen.geometry
@@ -414,8 +415,8 @@ local function start_precise_click_mode()
 			local success =
 				move_cursor_to_precise_key(key, { x = precise_x, y = precise_y, width = precise_w, height = precise_h })
 
-			if success then
-				awful.util.spawn_with_shell("xdotool click 1")
+			if success and button then
+				awful.util.spawn_with_shell("xdotool click " .. button)
 			else
 				naughty.notify({ title = "Erro", text = "Tecla inválida: " .. key })
 			end
@@ -428,7 +429,20 @@ local function start_precise_click_mode()
 	end)
 end
 
-local function toggle_cursor_mode_with_click()
+local function action_left_click_bind()
+	toggle_cursor_mode_with_click(1)
+end
+
+local function action_middle_click_bind()
+	toggle_cursor_mode_with_click(2)
+end
+
+local function action_right_click_bind()
+	toggle_cursor_mode_with_click(3)
+end
+
+function toggle_cursor_mode_with_click(button)
+	local button = button or 1
 	cursor_mode_active = not cursor_mode_active
 	toggle_grid()
 	if cursor_mode_active then
@@ -443,7 +457,7 @@ local function toggle_cursor_mode_with_click()
 			end
 			if key == "Escape" then
 				first_key = nil
-				toggle_cursor_mode_with_click()
+				toggle_cursor_mode_with_click(button)
 				return
 			end
 			if not first_key then
@@ -471,7 +485,7 @@ local function toggle_cursor_mode_with_click()
 				toggle_grid()
 				awful.keygrabber.stop(keygrabber)
 				cursor_mode_active = false
-				start_precise_click_mode()
+				start_precise_click_mode(button)
 			end
 		end)
 	else
@@ -485,18 +499,15 @@ end
 -- Bindings globais
 local globalkeys = gears.table.join(
 	root.keys(),
-	awful.key(
-		{ "Mod4", "Shift" },
-		"u",
-		toggle_cursor_mode,
-		{ description = "Ativar modo de controle do cursor", group = "custom" }
-	),
-	awful.key(
-		{ "Mod4", "Shift" },
-		"i",
-		toggle_cursor_mode_with_click,
-		{ description = "Ativar modo de controle do cursor com clique preciso", group = "custom" }
-	)
+	awful.key({ "Mod4", "Shift" }, "u", function()
+		action_left_click_bind()
+	end, { description = "Left mouse click", group = "custom" }),
+	awful.key({ "Mod4", "Shift" }, "i", function()
+		action_middle_click_bind()
+	end, { description = "Middle mouse click", group = "custom" }),
+	awful.key({ "Mod4", "Shift" }, "o", function()
+		action_right_click_bind()
+	end, { description = "Right mouse click", group = "custom" })
 )
 
 root.keys(globalkeys)
